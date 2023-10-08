@@ -457,13 +457,36 @@ client.on("message", (message) => {
     const birthday = args[1];
     birthdays[userId] = birthday;
     fs.writeFileSync(birthdayFilePath, JSON.stringify(birthdays, null, 2));
-    return message.reply(`Birthday set for you on ${birthday}.`);
+    
+    // Calculate age and upcoming birthday date
+    const today = new Date();
+    const birthDate = new Date(birthday);
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const upcomingBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+
+    // Check if birthday has already passed this year, if so, set it for next year
+    if (today > upcomingBirthday) {
+      upcomingBirthday.setFullYear(today.getFullYear() + 1);
+    }
+
+    // Calculate days until upcoming birthday
+    const daysUntilBirthday = Math.ceil((upcomingBirthday - today) / (1000 * 60 * 60 * 24));
+    
+    return message.reply(`Birthday set for you on ${birthday}. Your ${age + 1}th Birthday will be announced on ${upcomingBirthday.toISOString().substr(5, 5)}, ${daysUntilBirthday} days to go!`);
   }
 });
 
-// Check for birthdays and announce
+// Check for birthdays and announce in a specific channel
 setInterval(() => {
   const today = new Date().toISOString().substr(5, 5);
+  const birthdayChannelId = "1146210030027288616";
+
+  const birthdayChannel = client.channels.cache.get(birthdayChannelId);
+  if (!birthdayChannel) {
+    console.error(`Birthday channel with ID ${birthdayChannelId} not found.`);
+    return;
+  }
+
   for (const userId in birthdays) {
     const user = client.users.cache.get(userId);
     if (!user) {
@@ -473,10 +496,7 @@ setInterval(() => {
     }
 
     if (birthdays[userId] === today) {
-      const birthdayChannel = client.channels.cache.get("1146210030027288616");
-      if (birthdayChannel) {
-        birthdayChannel.send(`🎉 Happy Birthday ${user}! 🎉`);
-      }
+      birthdayChannel.send(`🎉 Happy Birthday ${user}! 🎉`);
     }
   }
 }, 60000); // Check every minute
@@ -496,7 +516,7 @@ client.on("ready", () => {
   
   // Set the bot's status
   client.user.setPresence({
-    //activity: { name: "VALORANT lol", type: "PLAYING" },
+    activity: { name: "Birthdays", type: "Playing" },
     status: "dnd", // "online", "idle", "dnd", or "invisible"
   });
 });
