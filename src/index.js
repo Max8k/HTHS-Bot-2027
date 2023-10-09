@@ -480,7 +480,7 @@ client.on("message", (message) => {
     const daysUntilBirthday = Math.ceil((upcomingBirthday - today) / oneDay);
 
     // Format the upcoming birthday date as YYYY-MM-DD
-    const formattedUpcomingBirthday = upcomingBirthday.toISOString().substr(5, 5);
+    const formattedUpcomingBirthday = upcomingBirthday.toISOString().substring(5, 10);
 
     return message.reply(`Birthday set for you on ${birthday}. Your ${age}th Birthday will be announced on ${formattedUpcomingBirthday}, ${daysUntilBirthday} days to go!`);
   }
