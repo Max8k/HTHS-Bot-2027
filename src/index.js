@@ -59,7 +59,7 @@ client.on("message", async (message) => {
     const args = message.content.slice(1).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
-    console.log("Received command:", command);
+    //console.log("Received command:", command);
 
     if (command === pingCommand) {
       const userId = message.author.id;
