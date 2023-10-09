@@ -446,11 +446,11 @@ if (fs.existsSync(birthdayFilePath)) {
 }
 
 client.on("message", (message) => {
-  // Command to set a user's birthday: !setbirthday YYYY-MM-DD
+  // Command to set a user's birthday: !setbirthday MM-DD-YYYY
   if (message.content.startsWith("!setbirthday")) {
     const args = message.content.split(" ");
     if (args.length !== 2) {
-      return message.reply('Do "!setbirthday YYYY-MM-DD"');
+      return message.reply('Do "!setbirthday MM-DD-YYYY"');
     }
 
     const userId = message.author.id;
@@ -458,7 +458,7 @@ client.on("message", (message) => {
 
     // Validate the input date
     if (!isValidDate(birthday)) {
-      return message.reply('Invalid date format. Please use "!setbirthday YYYY-MM-DD" with a valid date.');
+      return message.reply('Invalid date format. Please use "!setbirthday MM-DD-YYYY" with a valid date.');
     }
 
     birthdays[userId] = birthday;
@@ -479,8 +479,8 @@ client.on("message", (message) => {
     const age = upcomingBirthday.getFullYear() - birthDate.getFullYear();
     const daysUntilBirthday = Math.ceil((upcomingBirthday - today) / oneDay);
 
-    // Format the upcoming birthday date as YYYY-MM-DD
-    const formattedUpcomingBirthday = upcomingBirthday.toISOString().substr(5, 5);
+    // Format the upcoming birthday date as MM-DD-YYYY
+    const formattedUpcomingBirthday = `${upcomingBirthday.getMonth() + 1}-${upcomingBirthday.getDate()}-${upcomingBirthday.getFullYear()}`;
 
     return message.reply(`Birthday set for you on ${birthday}. Your ${age}th Birthday will be announced on ${formattedUpcomingBirthday}, ${daysUntilBirthday} days to go!`);
   }
@@ -520,9 +520,9 @@ client.on("guildMemberRemove", (member) => {
   fs.writeFileSync(birthdayFilePath, JSON.stringify(birthdays, null, 2));
 });
 
-// Function to validate a date string
+// Function to validate a date string (MM-DD-YYYY format)
 function isValidDate(dateString) {
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  const dateRegex = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])-\d{4}$/;
   if (!dateRegex.test(dateString)) {
     return false;
   }
