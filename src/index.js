@@ -169,7 +169,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
 
     if (role && member) {
       await member.roles.add(role);
-      console.log(`Added role ${role.name} to ${user.tag}`);
+      //console.log(`Added role ${role.name} to ${user.tag}`);
     }
   }
 });
@@ -185,7 +185,7 @@ client.on("messageReactionRemove", async (reaction, user) => {
 
     if (role && member) {
       await member.roles.remove(role);
-      console.log(`Removed role ${role.name} from ${user.tag}`);
+      //console.log(`Removed role ${role.name} from ${user.tag}`);
     }
   }
 })
@@ -319,7 +319,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
       if (role && member) {
         await member.roles.add(role);
-        console.log(`Added role ${role.name} to ${user.tag}`);
+        //console.log(`Added role ${role.name} to ${user.tag}`);
       }
     }
   }
@@ -336,7 +336,7 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
       if (role && member) {
         await member.roles.remove(role);
-        console.log(`Removed role ${role.name} from ${user.tag}`);
+        //console.log(`Removed role ${role.name} from ${user.tag}`);
       }
     }
   }
@@ -345,79 +345,117 @@ client.on('messageReactionRemove', async (reaction, user) => {
 ///--------------------------------------------------------------------------- SEPARATOR ---------
 
 const reactionRoleData2 = [
-  {
-    emoji: '✅',
-    roleId: '1151721467646591028',
-    text: 'Daily Poll',
-  },
-  {
-    emoji: '🆘',
-    roleId: '1145722058509140099',
-    text: 'Helper',
-  },
-];
-
-client.on('message', async (message) => {
-  if (message.content.toLowerCase() === '!sendrolesmessage3_') {
-    const reactionRolesMessage = 'Select your roles:\n\n' +
-      reactionRoleData2.map((data) => `${data.emoji} - ${data.text}`).join('\n');
-
-    const sentMessage = await message.channel.send(reactionRolesMessage);
-
-    for (const data of reactionRoleData2) {
-      await sentMessage.react(data.emoji);
+    {
+      emoji: '✅',
+      roleId: '1151721467646591028',
+      text: 'Daily Poll',
+    },
+  ];
+  
+  client.on('message', async (message) => {
+    if (message.content.toLowerCase() === '!sendrolesmessage3_') {
+      const reactionRolesMessage = 'Select your roles:\n\n' +
+        reactionRoleData2.map((data) => `${data.emoji} - ${data.text}`).join('\n');
+  
+      const sentMessage = await message.channel.send(reactionRolesMessage);
+  
+      for (const data of reactionRoleData2) {
+        await sentMessage.react(data.emoji);
+      }
     }
-  }
-});
-
-const userReactionMap = new Map(); // Map to track user reactions
-
-client.on('messageReactionAdd', async (reaction, user) => {
-  if (user.bot) return;
-
-  const data = reactionRoleData2.find((data) => reaction.emoji.name === data.emoji);
-  if (data) {
-    const guild = reaction.message.guild;
-    const role = guild.roles.cache.get(data.roleId);
-    const member = guild.members.cache.get(user.id);
-
-    if (role && member) {
-      // Check if the user has a previous reaction on this message
-      if (userReactionMap.has(reaction.message.id)) {
-        const previousReaction = userReactionMap.get(reaction.message.id);
-        const previousReactionUser = previousReaction.users.cache.get(user.id);
-
-        if (previousReactionUser) {
-          await reaction.message.reactions.cache.get(previousReaction.emoji.name).users.remove(user);
+  });
+  
+  client.on('messageReactionAdd', async (reaction, user) => {
+    if (user.bot) return;
+  
+    for (const data of reactionRoleData2) {
+      if (reaction.emoji.name === data.emoji) {
+        const guild = reaction.message.guild;
+        const role = guild.roles.cache.get(data.roleId);
+        const member = guild.members.cache.get(user.id);
+  
+        if (role && member) {
+          await member.roles.add(role);
+          //console.log(`Added role ${role.name} to ${user.tag}`);
         }
       }
-
-      await member.roles.add(role);
-      userReactionMap.set(reaction.message.id, reaction);
-      console.log(`Added role ${role.name} to ${user.tag}`);
     }
-  }
-});
-
-client.on('messageReactionRemove', async (reaction, user) => {
-  if (user.bot) return;
-
-  const data = reactionRoleData2.find((data) => reaction.emoji.name === data.emoji);
-  if (data) {
-    const guild = reaction.message.guild;
-    const role = guild.roles.cache.get(data.roleId);
-    const member = guild.members.cache.get(user.id);
-
-    if (role && member) {
-      // Check if the user still has the role before removing it
-      if (userReactionMap.has(reaction.message.id) && userReactionMap.get(reaction.message.id).emoji.name === reaction.emoji.name) {
-        await member.roles.remove(role);
-        userReactionMap.delete(reaction.message.id);
-        console.log(`Removed role ${role.name} from ${user.tag}`);
+  });
+  
+  client.on('messageReactionRemove', async (reaction, user) => {
+    if (user.bot) return;
+  
+    for (const data of reactionRoleData2) {
+      if (reaction.emoji.name === data.emoji) {
+        const guild = reaction.message.guild;
+        const role = guild.roles.cache.get(data.roleId);
+        const member = guild.members.cache.get(user.id);
+  
+        if (role && member) {
+          await member.roles.remove(role);
+          //console.log(`Removed role ${role.name} from ${user.tag}`);
+        }
       }
     }
-  }
-});
+  });
+
+
+
+
+  const reactionRoleData3 = [
+    {
+      emoji: '🆘',
+      roleId: '1145722058509140099',
+      text: 'Helper',
+    },
+  ];
+  
+  client.on('message', async (message) => {
+    if (message.content.toLowerCase() === '!sendrolesmessage4_') {
+      const reactionRolesMessage = 'Select your roles:\n\n' +
+        reactionRoleData3.map((data) => `${data.emoji} - ${data.text}`).join('\n');
+  
+      const sentMessage = await message.channel.send(reactionRolesMessage);
+  
+      for (const data of reactionRoleData3) {
+        await sentMessage.react(data.emoji);
+      }
+    }
+  });
+  
+  client.on('messageReactionAdd', async (reaction, user) => {
+    if (user.bot) return;
+  
+    for (const data of reactionRoleData3) {
+      if (reaction.emoji.name === data.emoji) {
+        const guild = reaction.message.guild;
+        const role = guild.roles.cache.get(data.roleId);
+        const member = guild.members.cache.get(user.id);
+  
+        if (role && member) {
+          await member.roles.add(role);
+          //console.log(`Added role ${role.name} to ${user.tag}`);
+        }
+      }
+    }
+  });
+  
+  client.on('messageReactionRemove', async (reaction, user) => {
+    if (user.bot) return;
+  
+    for (const data of reactionRoleData3) {
+      if (reaction.emoji.name === data.emoji) {
+        const guild = reaction.message.guild;
+        const role = guild.roles.cache.get(data.roleId);
+        const member = guild.members.cache.get(user.id);
+  
+        if (role && member) {
+          await member.roles.remove(role);
+          //console.log(`Removed role ${role.name} from ${user.tag}`);
+        }
+      }
+    }
+  });
 
 ///-----------------------------------------------------------------------------------------------------------------
 // welcome message
@@ -536,8 +574,6 @@ function isValidDate(dateString) {
 ///-----------------------------------------------------------------------------------------------------------------
 
 client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}`);
-  
   // Set the bot's presence here.
   client.user.setPresence({
     activity: { name: 'Birthdays', type: 'WATCHING' },
