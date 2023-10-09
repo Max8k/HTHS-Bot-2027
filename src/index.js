@@ -450,7 +450,7 @@ client.on("message", (message) => {
   if (message.content.startsWith("!setbirthday")) {
     const args = message.content.split(" ");
     if (args.length !== 2) {
-      return message.reply('Do "!setbirthday YYYY-MM-DD"');
+      return message.reply('Do "!setbirthday MM-DD-YYYY"');
     }
 
     const userId = message.author.id;
@@ -458,7 +458,7 @@ client.on("message", (message) => {
 
     // Validate the input date
     if (!isValidDate(birthday)) {
-      return message.reply('Invalid date format. Please use "!setbirthday YYYY-MM-DD" with a valid date.');
+      return message.reply('Invalid date format. Please use "!setbirthday MM-DD-YYYY" with a valid date.');
     }
 
     birthdays[userId] = birthday;
@@ -476,15 +476,25 @@ client.on("message", (message) => {
 
     // Calculate days until upcoming birthday
     const oneDay = 1000 * 60 * 60 * 24; // Milliseconds in a day
-    const age = upcomingBirthday.getFullYear() - birthDate.getFullYear();
+    const age = getAge(birthDate);
     const daysUntilBirthday = Math.ceil((upcomingBirthday - today) / oneDay);
 
     // Format the upcoming birthday date as YYYY-MM-DD
-    const formattedUpcomingBirthday = upcomingBirthday.toISOString().substr(5, 5);
+    const formattedUpcomingBirthday = upcomingBirthday.toISOString().substring(5, 10);
 
     return message.reply(`Birthday set for you on ${birthday}. Your ${age}th Birthday will be announced on ${formattedUpcomingBirthday}, ${daysUntilBirthday} days to go!`);
   }
 });
+
+function getAge(birthDate){
+  var today = new Date();
+  var age = today.getFullYear() - birthDate.getFullYear();
+  var m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
 
 // Announce birthdays at 8 AM EST in a specific channel
 setInterval(() => {
