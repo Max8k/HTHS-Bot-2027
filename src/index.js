@@ -455,14 +455,19 @@ client.on("message", (message) => {
 
     const userId = message.author.id;
     const birthday = args[1];
+
+    // Validate the input date
+    if (!isValidDate(birthday)) {
+      return message.reply('Invalid date format. Please use "!setbirthday YYYY-MM-DD" with a valid date.');
+    }
+
     birthdays[userId] = birthday;
     fs.writeFileSync(birthdayFilePath, JSON.stringify(birthdays, null, 2));
-    
+
     // Calculate age and upcoming birthday date
     const today = new Date();
     const birthDate = new Date(birthday);
-    const age = today.getFullYear() - birthDate.getFullYear();
-    const upcomingBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+    const upcomingBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate(), 8, 0, 0, 0);
 
     // Check if birthday has already passed this year, if so, set it for next year
     if (today > upcomingBirthday) {
@@ -470,16 +475,24 @@ client.on("message", (message) => {
     }
 
     // Calculate days until upcoming birthday
-    const daysUntilBirthday = Math.ceil((upcomingBirthday - today) / (1000 * 60 * 60 * 24));
-    
-    return message.reply(`Birthday set for you on ${birthday}. Your ${age + 1}th Birthday will be announced on ${upcomingBirthday.toISOString().substr(5, 5)}, ${daysUntilBirthday} days to go!`);
+    const oneDay = 1000 * 60 * 60 * 24; // Milliseconds in a day
+    const age = upcomingBirthday.getFullYear() - birthDate.getFullYear();
+    const daysUntilBirthday = Math.ceil((upcomingBirthday - today) / oneDay);
+
+    // Format the upcoming birthday date as YYYY-MM-DD
+    const formattedUpcomingBirthday = upcomingBirthday.toISOString().substr(5, 5);
+
+    return message.reply(`Birthday set for you on ${birthday}. Your ${age}th Birthday will be announced on ${formattedUpcomingBirthday}, ${daysUntilBirthday} days to go!`);
   }
 });
 
-// Check for birthdays and announce in a specific channel
+// Announce birthdays at 8 AM EST in a specific channel
 setInterval(() => {
-  const today = new Date().toISOString().substr(5, 5);
-  const birthdayChannelId = "1146210030027288616";
+  const now = new Date();
+  const estOffset = -5; // Eastern Standard Time (EST) offset in hours
+  now.setUTCHours(now.getUTCHours() + estOffset, 8, 0, 0);
+  const today = now.toISOString().substr(5, 5);
+  const birthdayChannelId = "1146210030027288616"; // Replace with your birthday channel ID
 
   const birthdayChannel = client.channels.cache.get(birthdayChannelId);
   if (!birthdayChannel) {
@@ -499,7 +512,7 @@ setInterval(() => {
       birthdayChannel.send(`🎉 Happy Birthday ${user}! 🎉`);
     }
   }
-}, 60000); // Check every minute
+}, 1000 * 60 * 60 * 24); // Check every 24 hours
 
 // Remove birthday entry when a member leaves
 client.on("guildMemberRemove", (member) => {
@@ -507,17 +520,28 @@ client.on("guildMemberRemove", (member) => {
   fs.writeFileSync(birthdayFilePath, JSON.stringify(birthdays, null, 2));
 });
 
+// Function to validate a date string
+function isValidDate(dateString) {
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(dateString)) {
+    return false;
+  }
+
+  const date = new Date(dateString);
+  return !isNaN(date.getTime());
+}
+
 ///-----------------------------------------------------------------------------------------------------------------
 // bot status
 ///-----------------------------------------------------------------------------------------------------------------
 
-client.on("ready", () => {
-  console.log(`Logged in as ${client.user.tag}!`);
+client.on('ready', () => {
+  console.log(`Logged in as ${client.user.tag}`);
   
-  // Set the bot's status
+  // Set the bot's presence here.
   client.user.setPresence({
-    activity: { name: "Birthdays", type: "Playing" },
-    status: "dnd", // "online", "idle", "dnd", or "invisible"
+    activity: { name: 'Birthdays', type: 'WATCHING' },
+    status: 'dnd', // "online", "idle", "dnd", or "invisible"
   });
 });
 
