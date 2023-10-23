@@ -1,18 +1,21 @@
 require("dotenv").config();
 
-const { Client, Intents, Collection } = require("discord.js");
-const path = require("node:path");
+const { Client } = require("discord.js");
 const fs = require("fs");
-
+/*
 const client = new Client({
   intents: [
     Intents.FLAGS.GUILDS,
     Intents.FLAGS.GUILD_MEMBERS,
     Intents.FLAGS.GUILD_MESSAGES,
-    Intents.FLAGS.MESSAGE_CONTENT,
+    Intents.FLAGS.GUILD_MESSAGE_CONTENT,
     Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
   ],
 });
+*/
+
+
+const client = new Client({intents: 3276799});
 
 console.log("Bot is starting...");
 
@@ -26,11 +29,10 @@ client.once("ready", () => {
 // ping-pong
 ///-----------------------------------------------------------------------------------------------------------------
 
-
 // Load banned users data from JSON file, or create an empty object if the file doesn't exist
 let bannedUsersData = {};
 try {
-  const data = fs.readFileSync('bannedUsers.json', 'utf8');
+  const data = fs.readFileSync('bannedUsers2.json', 'utf8');
   bannedUsersData = JSON.parse(data);
 } catch (err) {
   console.error('Error reading or parsing bannedUsers.json:', err);
@@ -45,13 +47,13 @@ const allowedChannelId = "1145799722800517233"; // Channel ID of allowed channel
 // Create a Map to store user ping attempts and timestamps
 const pingAttempts = new Map();
 
-client.on("message", async (message) => {
+client.on("messageCreate", async (message) => {
   if (message.author.bot) {
     return; // Ignore messages from bots
   }
 
   // Check if the message was sent in the allowed channel
-  if (message.channel.id !== allowedChannelId && message.content.startsWith("!")) {
+  if (message.channelId !== allowedChannelId && message.content.startsWith("!")) {
     return; // Ignore messages from other channels if they start with "!"
   }
 
@@ -88,21 +90,22 @@ client.on("message", async (message) => {
           unbanAt: now + temporaryBanTime,
         };
 
-        fs.writeFileSync('bannedUsers.json', JSON.stringify(bannedUsersData, null, 2));
+        fs.writeFileSync('bannedUsers2.json', JSON.stringify(bannedUsersData, null, 2));
 
         message.reply(`You are temporarily banned from using the ${pingCommand} command for 1 hour.`);
 
         setTimeout(() => {
           delete bannedUsersData[userId];
-          fs.writeFileSync('bannedUsers.json', JSON.stringify(bannedUsersData, null, 2));
+          fs.writeFileSync('bannedUsers2.json', JSON.stringify(bannedUsersData, null, 2));
         }, temporaryBanTime);
       } else {
         // User hasn't exceeded the maximum attempts within the cooldown window, allow the ping
         pingAttempts.set(userId, [...filteredPingAttempts, now]);
 
-        const pingMsg = await message.reply(`Pinging ${message.author}...`);
-        const latency = pingMsg.createdTimestamp - message.createdTimestamp;
-        pingMsg.edit(`Pong! ${message.author} Latency is ${latency}ms.`);
+        //const pingMsg = await message.reply(`Pinging ${message.author}...`);
+        //const latency = pingMsg.createdTimestamp - message.createdTimestamp;
+        //pingMsg.edit(`Pong! ${message.author} Latency is ${latency}ms.`);
+        const pingMsg = await message.reply(`!ping has been unfortunetely discontinued. Please use /ping.`);
       }
     }
   }
@@ -117,51 +120,166 @@ for (const userId in bannedUsersData) {
 }
 fs.writeFileSync('bannedUsers.json', JSON.stringify(bannedUsersData, null, 2));
 
+
+
+
+const { REST } = require('@discordjs/rest');
+const { Routes } = require('discord-api-types/v9');
+const { SlashCommandBuilder } = require('@discordjs/builders');
+
+const clientId = '1144697670246604924';
+const guildId = '1090437730498002945';
+
+const commands = [
+  new SlashCommandBuilder()
+    .setName('ping')
+    .setDescription('Ping the bot')
+    .toJSON(),
+];
+
+const rest = new REST({ version: '10' }).setToken(token);
+
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isCommand()) return;
+
+  const { commandName } = interaction;
+
+  if (commandName === 'ping') {
+    const userId = interaction.user.id;
+    const now = Date.now();
+
+    if (!isCommandAllowedInChannel(interaction.channelId)) {
+      await interaction.reply({
+        content: 'This command can only be used in the ping-wars channel.',
+        ephemeral: true, // Only the user can see this message
+      });
+      return;
+    }
+
+    if (isUserBanned(userId, now)) {
+      await interaction.reply({
+        content: 'You are temporarily banned from using the ping command.',
+        ephemeral: true, // Only the user can see this message
+      });
+      return;
+    }
+
+    // Increment user's ping count (change the data structure to suit your needs)
+    incrementUserPingCount(userId);
+
+    // This section is just for tracking the latency and responding.
+    const pingMsg = await interaction.reply({
+      content: `Pinging ${interaction.user}...`,
+      fetchReply: true,
+    });
+    const latency = pingMsg.createdTimestamp - interaction.createdTimestamp;
+    await pingMsg.edit(`Pong! ${interaction.user} Latency is ${latency}ms.`);
+
+    // Check if the user has reached the maximum ping count
+    if (getUserPingCount(userId) >= 2) {
+      // Temporarily ban the user for 1 hour (adjust the duration as needed)
+      banUser(userId, now);
+    }
+  }
+});
+
+// Function to check if the command is allowed in the channel
+function isCommandAllowedInChannel(channelId) {
+  return channelId === '1145799722800517233'; // Replace with your channel ID
+}
+
+// Example ban checking function; implement your own logic
+function isUserBanned(userId, currentTime) {
+  const bannedUsersData = loadBannedUsersData();
+  if (bannedUsersData[userId] && currentTime < bannedUsersData[userId].unbanAt) {
+    return true; // The user is banned
+  }
+  return false;
+}
+
+// Example function to load banned users from a JSON file
+function loadBannedUsersData() {
+  try {
+    const data = fs.readFileSync('bannedUsers.json', 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    console.error('Error reading or parsing bannedUsers.json:', err);
+    return {};
+  }
+}
+
+// Example function to increment user's ping count
+function incrementUserPingCount(userId) {
+}
+
+// Example function to get user's ping count
+function getUserPingCount(userId) {
+}
+
+// Example function to ban a user
+function banUser(userId, currentTime) {
+  const bannedUsersData = loadBannedUsersData();
+  bannedUsersData[userId] = {
+    bannedAt: currentTime,
+    unbanAt: currentTime + 3600000, // 1 hour ban duration
+  };
+  saveBannedUsersData(bannedUsersData);
+}
+
+// Example function to save banned users data to a JSON file
+function saveBannedUsersData(data) {
+  fs.writeFileSync('bannedUsers.json', JSON.stringify(data, null, 2));
+}
+
+(async () => {
+  try {
+    console.log('Started refreshing application (/) commands.');
+    await rest.put(
+      Routes.applicationGuildCommands(clientId, guildId),
+      { body: commands }
+    );
+    console.log('Successfully reloaded application (/) commands.');
+  } catch (error) {
+    console.error(error);
+  }
+})();
+
+
 ///-----------------------------------------------------------------------------------------------------------------
 // reaction roles
 ///-----------------------------------------------------------------------------------------------------------------
 
-// Reaction Roles Section
-
-// IDs of roles and corresponding emojis
-const roleEmojis = {
+const roleEmojis_section = {
   "1️⃣": "1144693268815294576",
   "2️⃣": "1144693449375895694",
   "3️⃣": "1144693517730467900",
   "4️⃣": "1144693570759037038",
-  "👌": "1090440833909674004",
-  "😑": "1090440877685624913",
-  "✝": "1090440928562516018",
-  // Add more emojis and role IDs as needed
 };
 
-const sentMessages = new Map(); // Map to store sent messages for reaction roles
+const sentMessages_section = new Map(); // Map to store sent messages for reaction roles
 
-client.on("message", async (message) => {
-  if (message.content.toLowerCase() === "!sendrolesmessage_") {
-    const reactionRolesMessage = "Select your Section and language!\n\n" +
-      "Section 1 - :one:\n" +
-      "Section 2 - :two:\n" +
-      "Section 3 - :three:\n" +
-      "Section 4 - :four:\n" +
-      "Spanish - 👌\n" +
-      "French - 😑\n" +
-      "Latin - :cross:";
+client.on("messageCreate", async (message) => {
+  if (message.content.toLowerCase() === "!sendrolesmessage_section") {
+    const reactionRolesMessage_section = "Select your section!\n\n" +
+      "Section 1 - 1️⃣\n" +
+      "Section 2 - 2️⃣\n" +
+      "Section 3 - 3️⃣\n" +
+      "Section 4 - 4️⃣\n";
 
-    const sentMessage = await message.channel.send(reactionRolesMessage);
+    const sentMessage = await message.channel.send(reactionRolesMessage_section);
 
-    for (const emoji in roleEmojis) {
+    for (const emoji in roleEmojis_section) {
       await sentMessage.react(emoji);
     }
 
-    sentMessages.set(sentMessage.id, roleEmojis); // Store the sent message
+    sentMessages_section.set(sentMessage.id, roleEmojis_section); // Store the sent message
   }
 });
 
 client.on("messageReactionAdd", async (reaction, user) => {
   if (user.bot) return;
 
-  const roleID = sentMessages.get(reaction.message.id)?.[reaction.emoji.name];
+  const roleID = sentMessages_section.get(reaction.message.id)?.[reaction.emoji.name];
   if (roleID) {
     const guild = reaction.message.guild;
     const role = guild.roles.cache.get(roleID);
@@ -177,7 +295,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
 client.on("messageReactionRemove", async (reaction, user) => {
   if (user.bot) return;
 
-  const roleID = sentMessages.get(reaction.message.id)?.[reaction.emoji.name];
+  const roleID = sentMessages_section.get(reaction.message.id)?.[reaction.emoji.name];
   if (roleID) {
     const guild = reaction.message.guild;
     const role = guild.roles.cache.get(roleID);
@@ -188,7 +306,66 @@ client.on("messageReactionRemove", async (reaction, user) => {
       //console.log(`Removed role ${role.name} from ${user.tag}`);
     }
   }
-})
+});
+
+///--------------------------------------------------------------------------- SEPARATOR ---------
+/*
+const roleEmojis_language = {
+  "👌": "1090440833909674004",
+  "😑": "1090440877685624913",
+  "✝": "1090440928562516018",
+};
+
+const sentMessages_language = new Map(); // Map to store sent messages for reaction roles
+
+client.on("messageCreate", async (message) => {
+  if (message.content.toLowerCase() === "!sendrolesmessage_language") {
+    const reactionRolesMessage_language = "Select your language!\n\n" +
+      "Spanish - 👌\n" +
+      "French - 😑\n" +
+      "Latin - :cross:";
+
+    const sentMessage = await message.channel.send(reactionRolesMessage_language);
+
+    for (const emoji in roleEmojis_language) {
+      await sentMessage.react(emoji);
+    }
+
+    sentMessages.set(sentMessage.id, roleEmojis_language); // Store the sent message
+  }
+});
+
+client.on("messageReactionAdd", async (reaction, user) => {
+  if (user.bot) return;
+
+  const roleID = sentMessages_language.get(reaction.message.id)?.[reaction.emoji.name];
+  if (roleID) {
+    const guild = reaction.message.guild;
+    const role = guild.roles.cache.get(roleID);
+    const member = guild.members.cache.get(user.id);
+
+    if (role && member) {
+      await member.roles.add(role);
+      //console.log(`Added role ${role.name} to ${user.tag}`);
+    }
+  }
+});
+
+client.on("messageReactionRemove", async (reaction, user) => {
+  if (user.bot) return;
+
+  const roleID = sentMessages_language.get(reaction.message.id)?.[reaction.emoji.name];
+  if (roleID) {
+    const guild = reaction.message.guild;
+    const role = guild.roles.cache.get(roleID);
+    const member = guild.members.cache.get(user.id);
+
+    if (role && member) {
+      await member.roles.remove(role);
+      //console.log(`Removed role ${role.name} from ${user.tag}`);
+    }
+  }
+});
 
 ///--------------------------------------------------------------------------- SEPARATOR ---------
 
@@ -295,8 +472,8 @@ const reactionRoleData = [
   },
 ];
 
-client.on('message', async (message) => {
-  if (message.content.toLowerCase() === '!sendrolesmessage2_') {
+client.on('messageCreate', async (message) => {
+  if (message.content.toLowerCase() === '!sendrolesmessage_hobbies') {
     const reactionRolesMessage = 'Select your roles:\n\n' +
       reactionRoleData.map((data) => `${data.emoji} - ${data.text}`).join('\n');
 
@@ -344,121 +521,64 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 ///--------------------------------------------------------------------------- SEPARATOR ---------
 
-const reactionRoleData2 = [
-    {
-      emoji: '✅',
-      roleId: '1151721467646591028',
-      text: 'Daily Poll',
-    },
-  ];
-  
-  client.on('message', async (message) => {
-    if (message.content.toLowerCase() === '!sendrolesmessage3_') {
-      const reactionRolesMessage = 'Select your roles:\n\n' +
-        reactionRoleData2.map((data) => `${data.emoji} - ${data.text}`).join('\n');
-  
-      const sentMessage = await message.channel.send(reactionRolesMessage);
-  
-      for (const data of reactionRoleData2) {
-        await sentMessage.react(data.emoji);
-      }
-    }
-  });
-  
-  client.on('messageReactionAdd', async (reaction, user) => {
-    if (user.bot) return;
-  
-    for (const data of reactionRoleData2) {
-      if (reaction.emoji.name === data.emoji) {
-        const guild = reaction.message.guild;
-        const role = guild.roles.cache.get(data.roleId);
-        const member = guild.members.cache.get(user.id);
-  
-        if (role && member) {
-          await member.roles.add(role);
-          //console.log(`Added role ${role.name} to ${user.tag}`);
-        }
-      }
-    }
-  });
-  
-  client.on('messageReactionRemove', async (reaction, user) => {
-    if (user.bot) return;
-  
-    for (const data of reactionRoleData2) {
-      if (reaction.emoji.name === data.emoji) {
-        const guild = reaction.message.guild;
-        const role = guild.roles.cache.get(data.roleId);
-        const member = guild.members.cache.get(user.id);
-  
-        if (role && member) {
-          await member.roles.remove(role);
-          //console.log(`Removed role ${role.name} from ${user.tag}`);
-        }
-      }
-    }
-  });
+// IDs of roles and corresponding emojis
+const roleEmojis_ya = {
+  "🆘": "1145722058509140099",
+  "✅": "1151721467646591028",
+};
 
+const sentMessages_ya = new Map(); // Map to store sent messages for reaction roles
 
+client.on("messageCreate", async (message) => {
+  if (message.content.toLowerCase() === "!sendrolesmessage_ya") {
+    const reactionRolesMessage = "Select your Section and language!\n\n" +
+      "Helper - 🆘\n" +
+      "Daily Poll - ✅";
 
+    const sentMessage = await message.channel.send(reactionRolesMessage);
 
-  const reactionRoleData3 = [
-    {
-      emoji: '🆘',
-      roleId: '1145722058509140099',
-      text: 'Helper',
-    },
-  ];
-  
-  client.on('message', async (message) => {
-    if (message.content.toLowerCase() === '!sendrolesmessage4_') {
-      const reactionRolesMessage = 'Select your roles:\n\n' +
-        reactionRoleData3.map((data) => `${data.emoji} - ${data.text}`).join('\n');
-  
-      const sentMessage = await message.channel.send(reactionRolesMessage);
-  
-      for (const data of reactionRoleData3) {
-        await sentMessage.react(data.emoji);
-      }
+    for (const emoji in roleEmojis_ya) {
+      await sentMessage.react(emoji);
     }
-  });
-  
-  client.on('messageReactionAdd', async (reaction, user) => {
-    if (user.bot) return;
-  
-    for (const data of reactionRoleData3) {
-      if (reaction.emoji.name === data.emoji) {
-        const guild = reaction.message.guild;
-        const role = guild.roles.cache.get(data.roleId);
-        const member = guild.members.cache.get(user.id);
-  
-        if (role && member) {
-          await member.roles.add(role);
-          //console.log(`Added role ${role.name} to ${user.tag}`);
-        }
-      }
-    }
-  });
-  
-  client.on('messageReactionRemove', async (reaction, user) => {
-    if (user.bot) return;
-  
-    for (const data of reactionRoleData3) {
-      if (reaction.emoji.name === data.emoji) {
-        const guild = reaction.message.guild;
-        const role = guild.roles.cache.get(data.roleId);
-        const member = guild.members.cache.get(user.id);
-  
-        if (role && member) {
-          await member.roles.remove(role);
-          //console.log(`Removed role ${role.name} from ${user.tag}`);
-        }
-      }
-    }
-  });
 
+    sentMessages_ya.set(sentMessage.id, roleEmojis_ya); // Store the sent message
+  }
+});
+
+client.on("messageReactionAdd", async (reaction, user) => {
+  if (user.bot) return;
+
+  const roleID = sentMessages_ya.get(reaction.message.id)?.[reaction.emoji.name];
+  if (roleID) {
+    const guild = reaction.message.guild;
+    const role = guild.roles.cache.get(roleID);
+    const member = guild.members.cache.get(user.id);
+
+    if (role && member) {
+      await member.roles.add(role);
+      //console.log(`Added role ${role.name} to ${user.tag}`);
+    }
+  }
+});
+
+client.on("messageReactionRemove", async (reaction, user) => {
+  if (user.bot) return;
+
+  const roleID = sentMessages_ya.get(reaction.message.id)?.[reaction.emoji.name];
+  if (roleID) {
+    const guild = reaction.message.guild;
+    const role = guild.roles.cache.get(roleID);
+    const member = guild.members.cache.get(user.id);
+
+    if (role && member) {
+      await member.roles.remove(role);
+      //console.log(`Removed role ${role.name} from ${user.tag}`);
+    }
+  }
+});
+*/
 ///-----------------------------------------------------------------------------------------------------------------
-// welcome message
+// Welcome Message
 ///-----------------------------------------------------------------------------------------------------------------
 
 client.on("guildMemberAdd", (member) => {
@@ -472,9 +592,9 @@ client.on("guildMemberAdd", (member) => {
 });
 
 ///-----------------------------------------------------------------------------------------------------------------
-// birthdays
+// Birthdays
 ///-----------------------------------------------------------------------------------------------------------------
-
+/*
 const birthdayFilePath = "birthdays.json";
 let birthdays = {};
 
@@ -483,7 +603,7 @@ if (fs.existsSync(birthdayFilePath)) {
   birthdays = JSON.parse(fs.readFileSync(birthdayFilePath, "utf8"));
 }
 
-client.on("message", (message) => {
+client.on("messageCreate", (message) => {
   // Command to set a user's birthday: !setbirthday MM-DD-YYYY
   if (message.content.startsWith("!setbirthday")) {
     const args = message.content.split(" ");
@@ -507,12 +627,12 @@ client.on("message", (message) => {
     const birthDate = new Date(birthday);
     const upcomingBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate(), 8, 0, 0, 0);
 
-    // Check if birthday has already passed this year, if so, set it for next year
+    // Check if the birthday has already passed this year, if so, set it for next year
     if (today > upcomingBirthday) {
       upcomingBirthday.setFullYear(today.getFullYear() + 1);
     }
 
-    // Calculate days until upcoming birthday
+    // Calculate days until the upcoming birthday
     const oneDay = 1000 * 60 * 60 * 24; // Milliseconds in a day
     const age = upcomingBirthday.getFullYear() - birthDate.getFullYear();
     const daysUntilBirthday = Math.ceil((upcomingBirthday - today) / oneDay);
@@ -568,24 +688,42 @@ function isValidDate(dateString) {
   const date = new Date(dateString);
   return !isNaN(date.getTime());
 }
+*/
 
 ///-----------------------------------------------------------------------------------------------------------------
-// bot status
+// Remote Shutdown
 ///-----------------------------------------------------------------------------------------------------------------
 
-client.on('ready', () => {
-  // Set the bot's presence here.
+const ownerId = '789606702076788737';
+
+client.on('messageCreate', (message) => {
+    if (message.author.id === ownerId && message.content === '!disconnect') {
+        message.channel.send('Disconnecting...').then(() => {
+            console.log('Recieved Command: Disconnect')
+            client.destroy(); // Disconnect the bot
+        });
+    }
+});
+
+///-----------------------------------------------------------------------------------------------------------------
+// Bot Status
+///-----------------------------------------------------------------------------------------------------------------
+
+client.once('ready', () => {
   client.user.setPresence({
-    activity: { name: 'Birthdays', type: 'WATCHING' },
+    activities: [{ name: '/Ping', type: 'PLAYING' }],
     status: 'dnd', // "online", "idle", "dnd", or "invisible"
   });
 });
 
 ///-----------------------------------------------------------------------------------------------------------------
-// bot token
+// Bot Token
 ///-----------------------------------------------------------------------------------------------------------------
 
 console.log("Bot is still starting...");
 //console.log(token)
-client.login(token);
-console.log("Bot has started!")
+client.login(token).then(() => {
+  console.log("Bot has started!");
+}).catch(error => {
+  console.error("Error logging in:", error);
+});
