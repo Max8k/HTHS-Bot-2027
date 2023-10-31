@@ -1,21 +1,8 @@
 require("dotenv").config();
+const fs = require('fs');
+const { Client, Intents } = require('discord.js');
 
-const { Client } = require("discord.js");
-const fs = require("fs");
-/*
-const client = new Client({
-  intents: [
-    Intents.FLAGS.GUILDS,
-    Intents.FLAGS.GUILD_MEMBERS,
-    Intents.FLAGS.GUILD_MESSAGES,
-    Intents.FLAGS.GUILD_MESSAGE_CONTENT,
-    Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-  ],
-});
-*/
-
-
-const client = new Client({intents: 3276799});
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
 console.log("Bot is starting...");
 
@@ -26,118 +13,51 @@ client.once("ready", () => {
 });
 
 ///-----------------------------------------------------------------------------------------------------------------
-// ping-pong
+// slash commands (Ping & Report Commands)
 ///-----------------------------------------------------------------------------------------------------------------
-
-// Load banned users data from JSON file, or create an empty object if the file doesn't exist
-let bannedUsersData = {};
-try {
-  const data = fs.readFileSync('bannedUsers2.json', 'utf8');
-  bannedUsersData = JSON.parse(data);
-} catch (err) {
-  console.error('Error reading or parsing bannedUsers.json:', err);
-}
-
-const pingCommand = "ping"; // Change this to your desired command name
-const maxPingAttempts = 5; // Maximum number of allowed pings before temporary ban
-const pingCooldownTime = 60 * 1000; // 60 seconds in milliseconds
-const temporaryBanTime = 3600 * 1000; // 1 hour in milliseconds
-const allowedChannelId = "1145799722800517233"; // Channel ID of allowed channel
-
-// Create a Map to store user ping attempts and timestamps
-const pingAttempts = new Map();
-
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) {
-    return; // Ignore messages from bots
-  }
-
-  // Check if the message was sent in the allowed channel
-  if (message.channelId !== allowedChannelId && message.content.startsWith("!")) {
-    return; // Ignore messages from other channels if they start with "!"
-  }
-
-  if (message.content.startsWith("!")) {
-    const args = message.content.slice(1).trim().split(/ +/);
-    const command = args.shift().toLowerCase();
-
-    //console.log("Received command:", command);
-
-    if (command === pingCommand) {
-      const userId = message.author.id;
-      const now = Date.now();
-
-      // Check if the user is banned
-      if (bannedUsersData[userId] && now < bannedUsersData[userId].unbanAt) {
-        // User is banned, prevent them from using the ping command
-        return;
-      }
-
-      // Check if the user has exceeded the maximum ping attempts in the cooldown window
-      const userPingAttempts = pingAttempts.get(userId) || [];
-
-      // Remove previous ping attempts that are older than the cooldown time
-      const currentTime = Date.now();
-      const filteredPingAttempts = userPingAttempts.filter((timestamp) => currentTime - timestamp <= pingCooldownTime);
-
-      if (filteredPingAttempts.length >= maxPingAttempts) {
-        // User has exceeded the maximum attempts within the cooldown window, temporarily ban them
-        pingAttempts.delete(userId);
-
-        // Store the ban information in the JSON file
-        bannedUsersData[userId] = {
-          bannedAt: now,
-          unbanAt: now + temporaryBanTime,
-        };
-
-        fs.writeFileSync('bannedUsers2.json', JSON.stringify(bannedUsersData, null, 2));
-
-        message.reply(`You are temporarily banned from using the ${pingCommand} command for 1 hour.`);
-
-        setTimeout(() => {
-          delete bannedUsersData[userId];
-          fs.writeFileSync('bannedUsers2.json', JSON.stringify(bannedUsersData, null, 2));
-        }, temporaryBanTime);
-      } else {
-        // User hasn't exceeded the maximum attempts within the cooldown window, allow the ping
-        pingAttempts.set(userId, [...filteredPingAttempts, now]);
-
-        //const pingMsg = await message.reply(`Pinging ${message.author}...`);
-        //const latency = pingMsg.createdTimestamp - message.createdTimestamp;
-        //pingMsg.edit(`Pong! ${message.author} Latency is ${latency}ms.`);
-        const pingMsg = await message.reply(`!ping has been unfortunetely discontinued. Please use /ping.`);
-      }
-    }
-  }
-});
-
-// Check for and remove expired bans on bot startup
-const now = Date.now();
-for (const userId in bannedUsersData) {
-  if (now >= bannedUsersData[userId].unbanAt) {
-    delete bannedUsersData[userId];
-  }
-}
-fs.writeFileSync('bannedUsers.json', JSON.stringify(bannedUsersData, null, 2));
-
-
-
 
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
-const { SlashCommandBuilder } = require('@discordjs/builders');
 
 const clientId = '1144697670246604924';
-const guildId = '1090437730498002945';
+const TARGET_CHANNEL_ID = '1090990525420687410'; // The channel where /report is allowed
+const REPORT_CHANNEL_ID = '1090440202457198592'; // The channel where report notifications are sent
 
 const commands = [
-  new SlashCommandBuilder()
-    .setName('ping')
-    .setDescription('Ping the bot')
-    .toJSON(),
+  {
+    name: 'ping',
+    description: 'Ping the bot',
+  },
+  {
+    name: 'report',
+    description: 'Report a user',
+    options: [
+      {
+        name: 'user',
+        type: 6, // USER type
+        description: 'The user to report',
+        required: true,
+      },
+      {
+        name: 'reason',
+        type: 3, // STRING type
+        description: 'The reason for the report',
+        required: true,
+      },
+    ],
+  },
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
+
+client.once('ready', async () => {
+  try {
+    await rest.put(Routes.applicationCommands(clientId), { body: commands });
+    console.log('Successfully registered "ping" and "report" commands.');
+  } catch (error) {
+    console.error(error);
+  }
+});
 
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return;
@@ -146,104 +66,58 @@ client.on('interactionCreate', async (interaction) => {
 
   if (commandName === 'ping') {
     const userId = interaction.user.id;
-    const now = Date.now();
 
     if (!isCommandAllowedInChannel(interaction.channelId)) {
       await interaction.reply({
         content: 'This command can only be used in the ping-wars channel.',
-        ephemeral: true, // Only the user can see this message
+        ephemeral: true,
       });
       return;
     }
 
-    if (isUserBanned(userId, now)) {
-      await interaction.reply({
-        content: 'You are temporarily banned from using the ping command.',
-        ephemeral: true, // Only the user can see this message
-      });
-      return;
-    }
-
-    // Increment user's ping count (change the data structure to suit your needs)
-    incrementUserPingCount(userId);
-
-    // This section is just for tracking the latency and responding.
     const pingMsg = await interaction.reply({
       content: `Pinging ${interaction.user}...`,
       fetchReply: true,
     });
     const latency = pingMsg.createdTimestamp - interaction.createdTimestamp;
     await pingMsg.edit(`Pong! ${interaction.user} Latency is ${latency}ms.`);
+  } else if (commandName === 'report') {
+    if (interaction.channelId !== TARGET_CHANNEL_ID) {
+      await interaction.reply({
+        content: 'You can only use the /report command in the report channel.',
+        ephemeral: true,
+      });
+      return;
+    }
 
-    // Check if the user has reached the maximum ping count
-    if (getUserPingCount(userId) >= 2) {
-      // Temporarily ban the user for 1 hour (adjust the duration as needed)
-      banUser(userId, now);
+    const userToReport = interaction.options.getMember('user');
+    const reason = interaction.options.getString('reason');
+
+    if (!userToReport || !reason) {
+      await interaction.reply({
+        content: 'Please provide a user and a reason for the report.',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await interaction.reply({
+      content: 'Your report has been submitted.',
+      ephemeral: true,
+    });
+
+    const reportChannel = client.channels.cache.get(REPORT_CHANNEL_ID);
+
+    if (reportChannel) {
+      reportChannel.send(`${userToReport} has been reported for: "${reason}" by ${interaction.user}`);
     }
   }
 });
 
 // Function to check if the command is allowed in the channel
 function isCommandAllowedInChannel(channelId) {
-  return channelId === '1145799722800517233'; // Replace with your channel ID
+  return channelId === '1145799722800517233';
 }
-
-// Example ban checking function; implement your own logic
-function isUserBanned(userId, currentTime) {
-  const bannedUsersData = loadBannedUsersData();
-  if (bannedUsersData[userId] && currentTime < bannedUsersData[userId].unbanAt) {
-    return true; // The user is banned
-  }
-  return false;
-}
-
-// Example function to load banned users from a JSON file
-function loadBannedUsersData() {
-  try {
-    const data = fs.readFileSync('bannedUsers.json', 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error('Error reading or parsing bannedUsers.json:', err);
-    return {};
-  }
-}
-
-// Example function to increment user's ping count
-function incrementUserPingCount(userId) {
-}
-
-// Example function to get user's ping count
-function getUserPingCount(userId) {
-}
-
-// Example function to ban a user
-function banUser(userId, currentTime) {
-  const bannedUsersData = loadBannedUsersData();
-  bannedUsersData[userId] = {
-    bannedAt: currentTime,
-    unbanAt: currentTime + 3600000, // 1 hour ban duration
-  };
-  saveBannedUsersData(bannedUsersData);
-}
-
-// Example function to save banned users data to a JSON file
-function saveBannedUsersData(data) {
-  fs.writeFileSync('bannedUsers.json', JSON.stringify(data, null, 2));
-}
-
-(async () => {
-  try {
-    console.log('Started refreshing application (/) commands.');
-    await rest.put(
-      Routes.applicationGuildCommands(clientId, guildId),
-      { body: commands }
-    );
-    console.log('Successfully reloaded application (/) commands.');
-  } catch (error) {
-    console.error(error);
-  }
-})();
-
 
 ///-----------------------------------------------------------------------------------------------------------------
 // reaction roles
@@ -309,7 +183,7 @@ client.on("messageReactionRemove", async (reaction, user) => {
 });
 
 ///--------------------------------------------------------------------------- SEPARATOR ---------
-/*
+
 const roleEmojis_language = {
   "👌": "1090440833909674004",
   "😑": "1090440877685624913",
@@ -331,7 +205,7 @@ client.on("messageCreate", async (message) => {
       await sentMessage.react(emoji);
     }
 
-    sentMessages.set(sentMessage.id, roleEmojis_language); // Store the sent message
+    sentMessages_language.set(sentMessage.id, roleEmojis_language); // Store the sent message
   }
 });
 
@@ -342,7 +216,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
   if (roleID) {
     const guild = reaction.message.guild;
     const role = guild.roles.cache.get(roleID);
-    const member = guild.members.cache.get(user.id);
+    const member = await guild.members.fetch(user.id);
 
     if (role && member) {
       await member.roles.add(role);
@@ -358,7 +232,7 @@ client.on("messageReactionRemove", async (reaction, user) => {
   if (roleID) {
     const guild = reaction.message.guild;
     const role = guild.roles.cache.get(roleID);
-    const member = guild.members.cache.get(user.id);
+    const member = await guild.members.fetch(user.id);
 
     if (role && member) {
       await member.roles.remove(role);
@@ -423,7 +297,7 @@ const reactionRoleData = [
   {
     emoji: '🥊',
     roleId: '1149295509316575283',
-    text: 'Boxxing/Wrestling',
+    text: 'Boxing/Wrestling',
   },
   {
     emoji: '🏓',
@@ -474,10 +348,10 @@ const reactionRoleData = [
 
 client.on('messageCreate', async (message) => {
   if (message.content.toLowerCase() === '!sendrolesmessage_hobbies') {
-    const reactionRolesMessage = 'Select your roles:\n\n' +
+    const reactionRolesMessage = 'Select your roles!\n\n' +
       reactionRoleData.map((data) => `${data.emoji} - ${data.text}`).join('\n');
 
-    const sentMessage = await message.channel.send(reactionRolesMessage);
+    const sentMessage = await message.channel.send({ content: reactionRolesMessage });
 
     for (const data of reactionRoleData) {
       await sentMessage.react(data.emoji);
@@ -495,8 +369,8 @@ client.on('messageReactionAdd', async (reaction, user) => {
       const member = guild.members.cache.get(user.id);
 
       if (role && member) {
-        await member.roles.add(role);
-        //console.log(`Added role ${role.name} to ${user.tag}`);
+        await member.roles.add([role]);
+        // console.log(`Added role ${role.name} to ${user.tag}`);
       }
     }
   }
@@ -512,8 +386,8 @@ client.on('messageReactionRemove', async (reaction, user) => {
       const member = guild.members.cache.get(user.id);
 
       if (role && member) {
-        await member.roles.remove(role);
-        //console.log(`Removed role ${role.name} from ${user.tag}`);
+        await member.roles.remove([role]);
+        // console.log(`Removed role ${role.name} from ${user.tag}`);
       }
     }
   }
@@ -521,7 +395,6 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 ///--------------------------------------------------------------------------- SEPARATOR ---------
 
-// IDs of roles and corresponding emojis
 const roleEmojis_ya = {
   "🆘": "1145722058509140099",
   "✅": "1151721467646591028",
@@ -531,11 +404,11 @@ const sentMessages_ya = new Map(); // Map to store sent messages for reaction ro
 
 client.on("messageCreate", async (message) => {
   if (message.content.toLowerCase() === "!sendrolesmessage_ya") {
-    const reactionRolesMessage = "Select your Section and language!\n\n" +
+    const reactionRolesMessage = "Select your roles!\n\n" +
       "Helper - 🆘\n" +
       "Daily Poll - ✅";
 
-    const sentMessage = await message.channel.send(reactionRolesMessage);
+    const sentMessage = await message.channel.send({ content: reactionRolesMessage });
 
     for (const emoji in roleEmojis_ya) {
       await sentMessage.react(emoji);
@@ -555,7 +428,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
     const member = guild.members.cache.get(user.id);
 
     if (role && member) {
-      await member.roles.add(role);
+      await member.roles.add([role]);
       //console.log(`Added role ${role.name} to ${user.tag}`);
     }
   }
@@ -571,18 +444,18 @@ client.on("messageReactionRemove", async (reaction, user) => {
     const member = guild.members.cache.get(user.id);
 
     if (role && member) {
-      await member.roles.remove(role);
+      await member.roles.remove([role]);
       //console.log(`Removed role ${role.name} from ${user.tag}`);
     }
   }
 });
-*/
+
 ///-----------------------------------------------------------------------------------------------------------------
 // Welcome Message
 ///-----------------------------------------------------------------------------------------------------------------
 
 client.on("guildMemberAdd", (member) => {
-  const welcomeChannelID = "1090439603955187782"; // <<--- channel ID
+  const welcomeChannelID = "1090439603955187782";
 
   const welcomeChannel = member.guild.channels.cache.get(welcomeChannelID);
 
@@ -689,7 +562,6 @@ function isValidDate(dateString) {
   return !isNaN(date.getTime());
 }
 */
-
 ///-----------------------------------------------------------------------------------------------------------------
 // Remote Shutdown
 ///-----------------------------------------------------------------------------------------------------------------
@@ -711,8 +583,8 @@ client.on('messageCreate', (message) => {
 
 client.once('ready', () => {
   client.user.setPresence({
-    activities: [{ name: '/Ping', type: 'PLAYING' }],
-    status: 'dnd', // "online", "idle", "dnd", or "invisible"
+    activities: [{ name: '/Report?', type: 'PLAYING' }],
+    status: 'idle', // "online", "idle", "dnd", or "invisible"
   });
 });
 
@@ -721,7 +593,6 @@ client.once('ready', () => {
 ///-----------------------------------------------------------------------------------------------------------------
 
 console.log("Bot is still starting...");
-//console.log(token)
 client.login(token).then(() => {
   console.log("Bot has started!");
 }).catch(error => {
