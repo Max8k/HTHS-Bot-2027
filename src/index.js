@@ -1,8 +1,17 @@
 require("dotenv").config();
 const fs = require('fs');
-const { Client, Intents } = require('discord.js');
+const {Client, MessageEmbed, Intents} = require("discord.js")
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
+const client = new Client({
+  intents: [
+    Intents.FLAGS.GUILDS, // Required for guild-related events (e.g., guildCreate, guildDelete)
+    Intents.FLAGS.GUILD_MESSAGES, // Required for message-related events (e.g., messageCreate, messageDelete)
+    Intents.FLAGS.GUILD_MESSAGE_REACTIONS, // Required for reaction-related events (e.g., messageReactionAdd, messageReactionRemove)
+    Intents.FLAGS.DIRECT_MESSAGES, // Required for direct message-related events (e.g., messageCreate in DMs)
+    Intents.FLAGS.GUILD_MEMBERS, // Required for member-related events (e.g., guildMemberAdd, guildMemberRemove)
+    Intents.FLAGS.GUILD_PRESENCES, // Required for presence-related events (e.g., presenceUpdate)
+  ],
+});
 
 console.log("Bot is starting...");
 
@@ -134,26 +143,27 @@ const sentMessages_section = new Map(); // Map to store sent messages for reacti
 
 client.on("messageCreate", async (message) => {
   if (message.content.toLowerCase() === "!sendrolesmessage_section") {
-    const reactionRolesMessage_section = "Select your section!\n\n" +
+    const reactionRolesMessage_section =
+      "Select your section!\n\n" +
       "Section 1 - 1️⃣\n" +
       "Section 2 - 2️⃣\n" +
       "Section 3 - 3️⃣\n" +
       "Section 4 - 4️⃣\n";
 
-    const sentMessage = await message.channel.send(reactionRolesMessage_section);
+    const sentMessage_section = await message.channel.send(reactionRolesMessage_section);
 
     for (const emoji in roleEmojis_section) {
-      await sentMessage.react(emoji);
+      await sentMessage_section.react(emoji);
     }
 
-    sentMessages_section.set(sentMessage.id, roleEmojis_section); // Store the sent message
+    sentMessages_section.set(sentMessage_section.id, roleEmojis_section); // Store the sent message
   }
 });
 
 client.on("messageReactionAdd", async (reaction, user) => {
   if (user.bot) return;
 
-  const roleID = sentMessages_section.get(reaction.message.id)?.[reaction.emoji.name];
+  const roleID = sentMessages_section.get(reaction.message.id)?.[reaction.emoji.toString()];
   if (roleID) {
     const guild = reaction.message.guild;
     const role = guild.roles.cache.get(roleID);
@@ -169,7 +179,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
 client.on("messageReactionRemove", async (reaction, user) => {
   if (user.bot) return;
 
-  const roleID = sentMessages_section.get(reaction.message.id)?.[reaction.emoji.name];
+  const roleID = sentMessages_section.get(reaction.message.id)?.[reaction.emoji.toString()];
   if (roleID) {
     const guild = reaction.message.guild;
     const role = guild.roles.cache.get(roleID);
@@ -181,6 +191,7 @@ client.on("messageReactionRemove", async (reaction, user) => {
     }
   }
 });
+
 
 ///--------------------------------------------------------------------------- SEPARATOR ---------
 
@@ -199,13 +210,13 @@ client.on("messageCreate", async (message) => {
       "French - 😑\n" +
       "Latin - :cross:";
 
-    const sentMessage = await message.channel.send(reactionRolesMessage_language);
+    const sentMessage_language = await message.channel.send(reactionRolesMessage_language);
 
     for (const emoji in roleEmojis_language) {
-      await sentMessage.react(emoji);
+      await sentMessage_language.react(emoji);
     }
 
-    sentMessages_language.set(sentMessage.id, roleEmojis_language); // Store the sent message
+    sentMessages_language.set(sentMessage_language.id, roleEmojis_language); // Store the sent message
   }
 });
 
@@ -351,10 +362,10 @@ client.on('messageCreate', async (message) => {
     const reactionRolesMessage = 'Select your roles!\n\n' +
       reactionRoleData.map((data) => `${data.emoji} - ${data.text}`).join('\n');
 
-    const sentMessage = await message.channel.send({ content: reactionRolesMessage });
+    const sentMessage_hobbies = await message.channel.send({ content: reactionRolesMessage });
 
     for (const data of reactionRoleData) {
-      await sentMessage.react(data.emoji);
+      await sentMessage_hobbies.react(data.emoji);
     }
   }
 });
@@ -370,7 +381,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
       if (role && member) {
         await member.roles.add([role]);
-        // console.log(`Added role ${role.name} to ${user.tag}`);
+        //console.log(`Added role ${role.name} to ${user.tag}`);
       }
     }
   }
@@ -387,7 +398,7 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
       if (role && member) {
         await member.roles.remove([role]);
-        // console.log(`Removed role ${role.name} from ${user.tag}`);
+        //console.log(`Removed role ${role.name} from ${user.tag}`);
       }
     }
   }
@@ -408,13 +419,13 @@ client.on("messageCreate", async (message) => {
       "Helper - 🆘\n" +
       "Daily Poll - ✅";
 
-    const sentMessage = await message.channel.send({ content: reactionRolesMessage });
+    const sentMessage_ya = await message.channel.send({ content: reactionRolesMessage });
 
     for (const emoji in roleEmojis_ya) {
-      await sentMessage.react(emoji);
+      await sentMessage_ya.react(emoji);
     }
 
-    sentMessages_ya.set(sentMessage.id, roleEmojis_ya); // Store the sent message
+    sentMessages_ya.set(sentMessage_ya.id, roleEmojis_ya); // Store the sent message
   }
 });
 
@@ -465,103 +476,33 @@ client.on("guildMemberAdd", (member) => {
 });
 
 ///-----------------------------------------------------------------------------------------------------------------
-// Birthdays
+// Word Filter
 ///-----------------------------------------------------------------------------------------------------------------
-/*
-const birthdayFilePath = "birthdays.json";
-let birthdays = {};
 
-// Load birthdays from file
-if (fs.existsSync(birthdayFilePath)) {
-  birthdays = JSON.parse(fs.readFileSync(birthdayFilePath, "utf8"));
-}
-
-client.on("messageCreate", (message) => {
-  // Command to set a user's birthday: !setbirthday MM-DD-YYYY
-  if (message.content.startsWith("!setbirthday")) {
-    const args = message.content.split(" ");
-    if (args.length !== 2) {
-      return message.reply('Do "!setbirthday MM-DD-YYYY"');
+const forbiddenWords = require('../forbiddenWords.json');
+client.on("messageCreate", async (message) => {
+  const contentLowerCase = message.content.toLowerCase(); // Convert message content to lowercase
+  for (let i = 0; i < forbiddenWords.length; i++) {
+    const forbiddenWordLowerCase = forbiddenWords[i].toLowerCase(); // Convert forbidden word to lowercase
+    if (contentLowerCase.includes(forbiddenWordLowerCase)) {
+      const embed = new MessageEmbed()
+        .setAuthor("Censored Word found")
+        .setColor("RED")
+        .setDescription(`L Message from ${message.author} has been censored.`);
+      try {
+        await message.delete();
+        message.channel.send({ embeds: [embed] });
+      } catch (error) {
+        console.log(error);
+        embed.setColor("DARK_RED");
+        embed.setDescription("Missing permissions to delete messages.");
+        message.reply({ embeds: [embed] });
+      }
+      break;
     }
-
-    const userId = message.author.id;
-    const birthday = args[1];
-
-    // Validate the input date
-    if (!isValidDate(birthday)) {
-      return message.reply('Invalid date format. Please use "!setbirthday MM-DD-YYYY" with a valid date.');
-    }
-
-    birthdays[userId] = birthday;
-    fs.writeFileSync(birthdayFilePath, JSON.stringify(birthdays, null, 2));
-
-    // Calculate age and upcoming birthday date
-    const today = new Date();
-    const birthDate = new Date(birthday);
-    const upcomingBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate(), 8, 0, 0, 0);
-
-    // Check if the birthday has already passed this year, if so, set it for next year
-    if (today > upcomingBirthday) {
-      upcomingBirthday.setFullYear(today.getFullYear() + 1);
-    }
-
-    // Calculate days until the upcoming birthday
-    const oneDay = 1000 * 60 * 60 * 24; // Milliseconds in a day
-    const age = upcomingBirthday.getFullYear() - birthDate.getFullYear();
-    const daysUntilBirthday = Math.ceil((upcomingBirthday - today) / oneDay);
-
-    // Format the upcoming birthday date as MM-DD-YYYY
-    const formattedUpcomingBirthday = `${upcomingBirthday.getMonth() + 1}-${upcomingBirthday.getDate()}-${upcomingBirthday.getFullYear()}`;
-
-    return message.reply(`Birthday set for you on ${birthday}. Your ${age}th Birthday will be announced on ${formattedUpcomingBirthday}, ${daysUntilBirthday} days to go!`);
   }
 });
 
-// Announce birthdays at 8 AM EST in a specific channel
-setInterval(() => {
-  const now = new Date();
-  const estOffset = -5; // Eastern Standard Time (EST) offset in hours
-  now.setUTCHours(now.getUTCHours() + estOffset, 8, 0, 0);
-  const today = now.toISOString().substr(5, 5);
-  const birthdayChannelId = "1146210030027288616"; // Replace with your birthday channel ID
-
-  const birthdayChannel = client.channels.cache.get(birthdayChannelId);
-  if (!birthdayChannel) {
-    console.error(`Birthday channel with ID ${birthdayChannelId} not found.`);
-    return;
-  }
-
-  for (const userId in birthdays) {
-    const user = client.users.cache.get(userId);
-    if (!user) {
-      delete birthdays[userId];
-      fs.writeFileSync(birthdayFilePath, JSON.stringify(birthdays, null, 2));
-      continue;
-    }
-
-    if (birthdays[userId] === today) {
-      birthdayChannel.send(`🎉 Happy Birthday ${user}! 🎉`);
-    }
-  }
-}, 1000 * 60 * 60 * 24); // Check every 24 hours
-
-// Remove birthday entry when a member leaves
-client.on("guildMemberRemove", (member) => {
-  delete birthdays[member.user.id];
-  fs.writeFileSync(birthdayFilePath, JSON.stringify(birthdays, null, 2));
-});
-
-// Function to validate a date string (MM-DD-YYYY format)
-function isValidDate(dateString) {
-  const dateRegex = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])-\d{4}$/;
-  if (!dateRegex.test(dateString)) {
-    return false;
-  }
-
-  const date = new Date(dateString);
-  return !isNaN(date.getTime());
-}
-*/
 ///-----------------------------------------------------------------------------------------------------------------
 // Remote Shutdown
 ///-----------------------------------------------------------------------------------------------------------------
@@ -584,7 +525,7 @@ client.on('messageCreate', (message) => {
 client.once('ready', () => {
   client.user.setPresence({
     activities: [{ name: '/Report?', type: 'PLAYING' }],
-    status: 'idle', // "online", "idle", "dnd", or "invisible"
+    status: 'dnd', // "online", "idle", "dnd", or "invisible"
   });
 });
 
@@ -592,7 +533,6 @@ client.once('ready', () => {
 // Bot Token
 ///-----------------------------------------------------------------------------------------------------------------
 
-console.log("Bot is still starting...");
 client.login(token).then(() => {
   console.log("Bot has started!");
 }).catch(error => {
