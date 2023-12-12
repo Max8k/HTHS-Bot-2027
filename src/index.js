@@ -13,8 +13,8 @@ const client = new Client({
   ],
 });
 
+const ownerId = '789606702076788737';
 console.log("Bot is starting...");
-
 const token = process.env.TOKEN;
 
 client.once("ready", () => {
@@ -55,14 +55,18 @@ const commands = [
       },
     ],
   },
+  {
+    name: 'help',
+    description: 'List of Current Commands',
+  },
 ];
 
-const rest = new REST({ version: '10' }).setToken(token);
+const rest = new REST({ version: 10 }).setToken(token);
 
 client.once('ready', async () => {
   try {
     await rest.put(Routes.applicationCommands(clientId), { body: commands });
-    console.log('Successfully registered "ping" and "report" commands.');
+    console.log('Successfully registered the application commands.');
   } catch (error) {
     console.error(error);
   }
@@ -90,7 +94,9 @@ client.on('interactionCreate', async (interaction) => {
     });
     const latency = pingMsg.createdTimestamp - interaction.createdTimestamp;
     await pingMsg.edit(`Pong! ${interaction.user} Latency is ${latency}ms.`);
+
   } else if (commandName === 'report') {
+    /*
     if (interaction.channelId !== TARGET_CHANNEL_ID) {
       await interaction.reply({
         content: 'You can only use the /report command in the report channel.',
@@ -98,13 +104,13 @@ client.on('interactionCreate', async (interaction) => {
       });
       return;
     }
-
+    */
     const userToReport = interaction.options.getMember('user');
     const reason = interaction.options.getString('reason');
 
     if (!userToReport || !reason) {
       await interaction.reply({
-        content: 'Please provide a user and a reason for the report.',
+        content: 'Please provide a user and a VALID reason for the report.',
         ephemeral: true,
       });
       return;
@@ -120,12 +126,16 @@ client.on('interactionCreate', async (interaction) => {
     if (reportChannel) {
       reportChannel.send(`${userToReport} has been reported for: "${reason}" by ${interaction.user}`);
     }
+  } else if (commandName === 'help') {
+    await interaction.reply({
+        content: 'Current Commands: "/ping", "/report", "/help"\n\nIf you have any issues, ping Max8k.',
+        ephemeral: true,
+    });
   }
 });
 
-// Function to check if the command is allowed in the channel
 function isCommandAllowedInChannel(channelId) {
-  return channelId === '1145799722800517233';
+  return channelId === '1145799722800517233'; // ping-wars channel id
 }
 
 ///-----------------------------------------------------------------------------------------------------------------
@@ -406,33 +416,33 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 ///--------------------------------------------------------------------------- SEPARATOR ---------
 
-const roleEmojis_ya = {
+const roleEmojis_more = {
   "🆘": "1145722058509140099",
   "✅": "1151721467646591028",
 };
 
-const sentMessages_ya = new Map(); // Map to store sent messages for reaction roles
+const sentMessages_more = new Map(); // Map to store sent messages for reaction roles
 
 client.on("messageCreate", async (message) => {
-  if (message.content.toLowerCase() === "!sendrolesmessage_ya") {
+  if (message.content.toLowerCase() === "!sendrolesmessage_more") {
     const reactionRolesMessage = "Select your roles!\n\n" +
       "Helper - 🆘\n" +
       "Daily Poll - ✅";
 
-    const sentMessage_ya = await message.channel.send({ content: reactionRolesMessage });
+    const sentMessage_more = await message.channel.send({ content: reactionRolesMessage });
 
-    for (const emoji in roleEmojis_ya) {
-      await sentMessage_ya.react(emoji);
+    for (const emoji in roleEmojis_more) {
+      await sentMessage_more.react(emoji);
     }
 
-    sentMessages_ya.set(sentMessage_ya.id, roleEmojis_ya); // Store the sent message
+    sentMessages_more.set(sentMessage_more.id, roleEmojis_more); // Store the sent message
   }
 });
 
 client.on("messageReactionAdd", async (reaction, user) => {
   if (user.bot) return;
 
-  const roleID = sentMessages_ya.get(reaction.message.id)?.[reaction.emoji.name];
+  const roleID = sentMessages_more.get(reaction.message.id)?.[reaction.emoji.name];
   if (roleID) {
     const guild = reaction.message.guild;
     const role = guild.roles.cache.get(roleID);
@@ -448,7 +458,68 @@ client.on("messageReactionAdd", async (reaction, user) => {
 client.on("messageReactionRemove", async (reaction, user) => {
   if (user.bot) return;
 
-  const roleID = sentMessages_ya.get(reaction.message.id)?.[reaction.emoji.name];
+  const roleID = sentMessages_more.get(reaction.message.id)?.[reaction.emoji.name];
+  if (roleID) {
+    const guild = reaction.message.guild;
+    const role = guild.roles.cache.get(roleID);
+    const member = guild.members.cache.get(user.id);
+
+    if (role && member) {
+      await member.roles.remove([role]);
+      //console.log(`Removed role ${role.name} from ${user.tag}`);
+    }
+  }
+});
+
+///--------------------------------------------------------------------------- SEPARATOR ---------
+
+const roleEmojis_pronouns = {
+  "👽": "1154483667826135061",
+  "👻": "1154483798482882641",
+  "😏": "1154483874756317225",
+  "😱": "1154483962576654366",
+};
+
+const sentMessages_pronouns = new Map(); // Map to store sent messages for reaction roles
+
+client.on("messageCreate", async (message) => {
+  if (message.content.toLowerCase() === "!sendrolesmessage_pronouns") {
+    const reactionRolesMessage = "Select your roles!\n\n" +
+      "He/Him - 👽\n" +
+      "She/Her - 👻\n" +
+      "They/Them - 😏\n" +
+      "Other - 😱";
+
+    const sentMessage_pronouns = await message.channel.send({ content: reactionRolesMessage });
+
+    for (const emoji in roleEmojis_pronouns) {
+      await sentMessage_pronouns.react(emoji);
+    }
+
+    sentMessages_pronouns.set(sentMessage_pronouns.id, roleEmojis_pronouns); // Store the sent message
+  }
+});
+
+client.on("messageReactionAdd", async (reaction, user) => {
+  if (user.bot) return;
+
+  const roleID = sentMessages_pronouns.get(reaction.message.id)?.[reaction.emoji.name];
+  if (roleID) {
+    const guild = reaction.message.guild;
+    const role = guild.roles.cache.get(roleID);
+    const member = guild.members.cache.get(user.id);
+
+    if (role && member) {
+      await member.roles.add([role]);
+      //console.log(`Added role ${role.name} to ${user.tag}`);
+    }
+  }
+});
+
+client.on("messageReactionRemove", async (reaction, user) => {
+  if (user.bot) return;
+
+  const roleID = sentMessages_pronouns.get(reaction.message.id)?.[reaction.emoji.name];
   if (roleID) {
     const guild = reaction.message.guild;
     const role = guild.roles.cache.get(roleID);
@@ -507,15 +578,16 @@ client.on("messageCreate", async (message) => {
 // Remote Shutdown
 ///-----------------------------------------------------------------------------------------------------------------
 
-const ownerId = '789606702076788737';
-
-client.on('messageCreate', (message) => {
-    if (message.author.id === ownerId && message.content === '!disconnect') {
-        message.channel.send('Disconnecting...').then(() => {
-            console.log('Recieved Command: Disconnect')
-            client.destroy(); // Disconnect the bot
-        });
+client.on('messageCreate', async (message) => {
+  if (message.author.id === ownerId && message.content === '!disconnect') {
+    try {
+      await message.delete();
+    } catch (error) {
+      console.log(error)
     }
+    console.log('Recieved Disconnect Command...')
+    client.destroy(); // Disconnect the bot
+  }
 });
 
 ///-----------------------------------------------------------------------------------------------------------------
@@ -527,6 +599,21 @@ client.once('ready', () => {
     activities: [{ name: '/Report?', type: 'PLAYING' }],
     status: 'dnd', // "online", "idle", "dnd", or "invisible"
   });
+});
+
+client.on('messageCreate', async (message) => {
+  if (message.author.id === ownerId && message.content === '!update') {
+    try {
+      await message.delete();
+    } catch (error) {
+      console.log(error)
+    }
+    client.user.setPresence({
+      activities: [{ name: '/Report?', type: 'PLAYING' }],
+      status: 'dnd', // "online", "idle", "dnd", or "invisible"
+    });
+    console.log('Recieved Update Command...')
+  }
 });
 
 ///-----------------------------------------------------------------------------------------------------------------
