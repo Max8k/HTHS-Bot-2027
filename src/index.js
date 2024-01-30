@@ -159,7 +159,7 @@ client.on('interactionCreate', async (interaction) => {
 
     if (hasProfanity) {
       await interaction.reply({
-        content: `The word "${word}" is/contains a profanity, MAY be punishable.`,
+        content: `The word "${word}" MAY contain a profanity, POSSIBLY punishable.`,
         ephemeral: true,
       });
     } else {
@@ -642,7 +642,7 @@ client.on('messageCreate', async (message) => {
 
 client.once('ready', () => {
   client.user.setPresence({
-    activities: [{ name: 'GitHub Repo', type: 'WATCHING', url: 'https://github.com/Max8k/HTHS-Bot-2027/' }],
+    activities: [{ name: 'GitHub Repo', type: 'WATCHING', url: githubLink }],
     status: 'dnd', // "online", "idle", "dnd", or "invisible"
   });
 });
@@ -655,7 +655,7 @@ client.on('messageCreate', async (message) => {
       console.log(error)
     }
     client.user.setPresence({
-      activities: [{ name: 'GitHub Repo', type: 'WATCHING', url: 'https://github.com/Max8k/HTHS-Bot-2027/' }],
+      activities: [{ name: 'GitHub Repo', type: 'WATCHING', url: githubLink }],
       status: 'dnd', // "online", "idle", "dnd", or "invisible"
     });
     console.log('Recieved Update Command...')
