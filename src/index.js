@@ -14,11 +14,11 @@ const client = new Client({
 });
 
 const ownerId = '789606702076788737';
-console.log("Bot is starting...");
 const token = process.env.TOKEN;
+const forbiddenWords = require('../forbiddenWords.json');
 
 client.once("ready", () => {
-  console.log(`Logged in as ${client.user.tag}!`);
+  console.log(`${client.user.tag} online...`);
 });
 
 ///-----------------------------------------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 
 const clientId = '1144697670246604924';
-const TARGET_CHANNEL_ID = '1090990525420687410'; // The channel where /report is allowed
+//const TARGET_CHANNEL_ID = '1090990525420687410'; // The channel where /report is allowed
 const REPORT_CHANNEL_ID = '1090440202457198592'; // The channel where report notifications are sent
 
 const commands = [
@@ -59,6 +59,18 @@ const commands = [
     name: 'help',
     description: 'List of Current Commands',
   },
+  {
+    name: 'word-filter',
+    description: 'Profanity Filter',
+    options: [
+      {
+        name: 'word',
+        type: 3, // STRING type
+        description: 'Word to filter...',
+        required: true,
+      },
+    ]
+  },
 ];
 
 const rest = new REST({ version: 10 }).setToken(token);
@@ -73,8 +85,8 @@ client.once('ready', async () => {
 });
 
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return;
 
+  if (!interaction.isCommand()) return;
   const { commandName } = interaction;
 
   if (commandName === 'ping') {
@@ -131,6 +143,30 @@ client.on('interactionCreate', async (interaction) => {
         content: 'Current Commands: "/ping", "/report", "/help"\n\nIf you have any issues, ping Max8k.',
         ephemeral: true,
     });
+  } else if (commandName === 'word-filter') {
+    const word = interaction.options.getString('word');
+    const contentLowerCase = word.toLowerCase();
+    let hasProfanity = false;
+
+    for (let i = 0; i < forbiddenWords.length; i++) {
+      const forbiddenWordLowerCase = forbiddenWords[i].toLowerCase();
+      if (contentLowerCase.includes(forbiddenWordLowerCase)) {
+        hasProfanity = true;
+        break; // Break out of the loop if profanity is found
+      }
+    }
+
+    if (hasProfanity) {
+      await interaction.reply({
+        content: `The word "${word}" is/contains a profanity, MAY be punishable.`,
+        ephemeral: true,
+      });
+    } else {
+      await interaction.reply({
+        content: `The word "${word}" doesn't contain a profanity.`,
+        ephemeral: true,
+      });
+    }
   }
 });
 
@@ -152,9 +188,10 @@ const roleEmojis_section = {
 const sentMessages_section = new Map(); // Map to store sent messages for reaction roles
 
 client.on("messageCreate", async (message) => {
-  if (message.content.toLowerCase() === "!sendrolesmessage_section") {
+  if (message.content.toLowerCase() === "!sendrolesmessage_section" && message.author.id === ownerId) {
+    message.delete();
     const reactionRolesMessage_section =
-      "Select your section!\n\n" +
+      "Select your section:\n\n" +
       "Section 1 - 1️⃣\n" +
       "Section 2 - 2️⃣\n" +
       "Section 3 - 3️⃣\n" +
@@ -214,8 +251,9 @@ const roleEmojis_language = {
 const sentMessages_language = new Map(); // Map to store sent messages for reaction roles
 
 client.on("messageCreate", async (message) => {
-  if (message.content.toLowerCase() === "!sendrolesmessage_language") {
-    const reactionRolesMessage_language = "Select your language!\n\n" +
+  if (message.content.toLowerCase() === "!sendrolesmessage_language" && message.author.id === ownerId) {
+    message.delete();
+    const reactionRolesMessage_language = "\nSelect your language:\n\n" +
       "Spanish - 👌\n" +
       "French - 😑\n" +
       "Latin - :cross:";
@@ -368,8 +406,9 @@ const reactionRoleData = [
 ];
 
 client.on('messageCreate', async (message) => {
-  if (message.content.toLowerCase() === '!sendrolesmessage_hobbies') {
-    const reactionRolesMessage = 'Select your roles!\n\n' +
+  if (message.content.toLowerCase() === '!sendrolesmessage_hobbies' && message.author.id === ownerId) {
+    message.delete();
+    const reactionRolesMessage = '\nSelect your roles:\n\n' +
       reactionRoleData.map((data) => `${data.emoji} - ${data.text}`).join('\n');
 
     const sentMessage_hobbies = await message.channel.send({ content: reactionRolesMessage });
@@ -419,15 +458,18 @@ client.on('messageReactionRemove', async (reaction, user) => {
 const roleEmojis_more = {
   "🆘": "1145722058509140099",
   "✅": "1151721467646591028",
+  "😵": "1184592060796371006",
 };
 
 const sentMessages_more = new Map(); // Map to store sent messages for reaction roles
 
 client.on("messageCreate", async (message) => {
-  if (message.content.toLowerCase() === "!sendrolesmessage_more") {
-    const reactionRolesMessage = "Select your roles!\n\n" +
+  if (message.content.toLowerCase() === "!sendrolesmessage_more" && message.author.id === ownerId) {
+    message.delete();
+    const reactionRolesMessage = "\nSelect your roles:\n\n" +
       "Helper - 🆘\n" +
-      "Daily Poll - ✅";
+      "Daily Poll - ✅\n" +
+      "Pingable - 😵";
 
     const sentMessage_more = await message.channel.send({ content: reactionRolesMessage });
 
@@ -483,8 +525,9 @@ const roleEmojis_pronouns = {
 const sentMessages_pronouns = new Map(); // Map to store sent messages for reaction roles
 
 client.on("messageCreate", async (message) => {
-  if (message.content.toLowerCase() === "!sendrolesmessage_pronouns") {
-    const reactionRolesMessage = "Select your roles!\n\n" +
+  if (message.content.toLowerCase() === "!sendrolesmessage_pronouns" && message.author.id === ownerId) {
+    message.delete();
+    const reactionRolesMessage = "\nSelect your pronouns:\n\n" +
       "He/Him - 👽\n" +
       "She/Her - 👻\n" +
       "They/Them - 😏\n" +
@@ -537,12 +580,12 @@ client.on("messageReactionRemove", async (reaction, user) => {
 ///-----------------------------------------------------------------------------------------------------------------
 
 client.on("guildMemberAdd", (member) => {
-  const welcomeChannelID = "1090439603955187782";
+  const welcomeChannelID = "1090439603955187782"; // Welcome Messages Sent to this channel
 
   const welcomeChannel = member.guild.channels.cache.get(welcomeChannelID);
 
   if (welcomeChannel) {
-    welcomeChannel.send(`:tada: :partying_face: :tada:   Welcome to the server, ${member.user.username}! Enjoy your time here :).`);
+    welcomeChannel.send(`:tada::partying_face::tada:  Welcome to the server, <@${member.id}>! Enjoy your time here :).`);
   }
 });
 
@@ -550,7 +593,9 @@ client.on("guildMemberAdd", (member) => {
 // Word Filter
 ///-----------------------------------------------------------------------------------------------------------------
 
-const forbiddenWords = require('../forbiddenWords.json');
+// Only commented because it's annoying for my server members, works 100%...
+
+/*
 client.on("messageCreate", async (message) => {
   const contentLowerCase = message.content.toLowerCase(); // Convert message content to lowercase
   for (let i = 0; i < forbiddenWords.length; i++) {
@@ -573,7 +618,7 @@ client.on("messageCreate", async (message) => {
     }
   }
 });
-
+*/
 ///-----------------------------------------------------------------------------------------------------------------
 // Remote Shutdown
 ///-----------------------------------------------------------------------------------------------------------------
@@ -596,7 +641,7 @@ client.on('messageCreate', async (message) => {
 
 client.once('ready', () => {
   client.user.setPresence({
-    activities: [{ name: '/Report?', type: 'PLAYING' }],
+    activities: [{ name: '/word-check?', type: 'PLAYING' }],
     status: 'dnd', // "online", "idle", "dnd", or "invisible"
   });
 });
@@ -609,7 +654,7 @@ client.on('messageCreate', async (message) => {
       console.log(error)
     }
     client.user.setPresence({
-      activities: [{ name: '/Report?', type: 'PLAYING' }],
+      activities: [{ name: '/word-check??', type: 'PLAYING' }],
       status: 'dnd', // "online", "idle", "dnd", or "invisible"
     });
     console.log('Recieved Update Command...')
@@ -621,7 +666,7 @@ client.on('messageCreate', async (message) => {
 ///-----------------------------------------------------------------------------------------------------------------
 
 client.login(token).then(() => {
-  console.log("Bot has started!");
+  console.log("Bot connected...");
 }).catch(error => {
   console.error("Error logging in:", error);
 });
