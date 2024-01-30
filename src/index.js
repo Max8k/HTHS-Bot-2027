@@ -16,6 +16,7 @@ const client = new Client({
 const ownerId = '789606702076788737';
 const token = process.env.TOKEN;
 const forbiddenWords = require('../forbiddenWords.json');
+const githubLink = 'https://github.com/Max8k/HTHS-Bot-2027/';
 
 client.once("ready", () => {
   console.log(`${client.user.tag} online...`);
@@ -140,7 +141,7 @@ client.on('interactionCreate', async (interaction) => {
     }
   } else if (commandName === 'help') {
     await interaction.reply({
-        content: 'Current Commands: "/ping", "/report", "/help"\n\nIf you have any issues, ping Max8k.',
+        content: 'Current Commands: "/ping", "/report", "/word-filter"\n\n/ping - Pings the bot and gives you latency in ms.\n/report - Use this to report a user, please only provide valid reasons.\n/word-filter - Just for fun, use this command to check if any word is a profanity, (Accuracy Not Guaranteed).\n\nIf you have any issues with the discord bot please DM max8k.',
         ephemeral: true,
     });
   } else if (commandName === 'word-filter') {
@@ -641,7 +642,7 @@ client.on('messageCreate', async (message) => {
 
 client.once('ready', () => {
   client.user.setPresence({
-    activities: [{ name: '/word-check?', type: 'PLAYING' }],
+    activities: [{ name: 'GitHub Repo', type: 'WATCHING', url: 'https://github.com/Max8k/HTHS-Bot-2027/' }],
     status: 'dnd', // "online", "idle", "dnd", or "invisible"
   });
 });
@@ -654,7 +655,7 @@ client.on('messageCreate', async (message) => {
       console.log(error)
     }
     client.user.setPresence({
-      activities: [{ name: '/word-check??', type: 'PLAYING' }],
+      activities: [{ name: 'GitHub Repo', type: 'WATCHING', url: 'https://github.com/Max8k/HTHS-Bot-2027/' }],
       status: 'dnd', // "online", "idle", "dnd", or "invisible"
     });
     console.log('Recieved Update Command...')
