@@ -5,12 +5,12 @@ const { CronJob } = require('cron');
 
 const client = new Client({
   intents: [
-    Intents.FLAGS.GUILDS, // Required for guild-related events (e.g., guildCreate, guildDelete)
-    Intents.FLAGS.GUILD_MESSAGES, // Required for message-related events (e.g., messageCreate, messageDelete)
-    Intents.FLAGS.GUILD_MESSAGE_REACTIONS, // Required for reaction-related events (e.g., messageReactionAdd, messageReactionRemove)
-    Intents.FLAGS.DIRECT_MESSAGES, // Required for direct message-related events (e.g., messageCreate in DMs)
-    Intents.FLAGS.GUILD_MEMBERS, // Required for member-related events (e.g., guildMemberAdd, guildMemberRemove)
-    Intents.FLAGS.GUILD_PRESENCES, // Required for presence-related events (e.g., presenceUpdate)
+    Intents.FLAGS.GUILDS, // Guild-related events (e.g., guildCreate, guildDelete)
+    Intents.FLAGS.GUILD_MESSAGES, // Message-related events (e.g., messageCreate, messageDelete)
+    Intents.FLAGS.GUILD_MESSAGE_REACTIONS, // Reaction-related events (e.g., messageReactionAdd, messageReactionRemove)
+    Intents.FLAGS.DIRECT_MESSAGES, // Direct message-related events (e.g., messageCreate in DMs)
+    Intents.FLAGS.GUILD_MEMBERS, // Member-related events (e.g., guildMemberAdd, guildMemberRemove)
+    Intents.FLAGS.GUILD_PRESENCES, // Presence-related events (e.g., presenceUpdate)
   ],
 });
 
@@ -24,7 +24,7 @@ client.once("ready", () => {
 });
 
 ///-----------------------------------------------------------------------------------------------------------------
-// slash commands (Ping & Report Commands)
+// slash commands
 ///-----------------------------------------------------------------------------------------------------------------
 
 const { REST } = require('@discordjs/rest');
@@ -45,13 +45,13 @@ const commands = [
     options: [
       {
         name: 'user',
-        type: 6, // USER type
+        type: 6,
         description: 'The user to report',
         required: true,
       },
       {
         name: 'reason',
-        type: 3, // STRING type
+        type: 3,
         description: 'The reason for the report',
         required: true,
       },
@@ -67,7 +67,7 @@ const commands = [
     options: [
       {
         name: 'word',
-        type: 3, // STRING type
+        type: 3,
         description: 'Word to filter...',
         required: true,
       },
@@ -669,7 +669,7 @@ client.on('messageCreate', async (message) => {
 
 client.once('ready', () => {
   client.user.setPresence({
-    activities: [{ name: 'GitHub Repo', type: 'WATCHING', url: githubLink }],
+    activities: [{ name: 'UPDATES', type: 'WATCHING', url: githubLink }],
     status: 'dnd', // "online", "idle", "dnd", or "invisible"
   });
 });
@@ -682,7 +682,7 @@ client.on('messageCreate', async (message) => {
       console.log(error)
     }
     client.user.setPresence({
-      activities: [{ name: 'GitHub Repo', type: 'WATCHING', url: githubLink }],
+      activities: [{ name: 'UPDATES', type: 'WATCHING', url: githubLink }],
       status: 'dnd', // "online", "idle", "dnd", or "invisible"
     });
     console.log('Recieved Update Command...')
