@@ -1,6 +1,7 @@
 require("dotenv").config();
 const fs = require('fs');
 const {Client, MessageEmbed, Intents} = require("discord.js")
+const { CronJob } = require('cron');
 
 const client = new Client({
   intents: [
@@ -460,6 +461,7 @@ const roleEmojis_more = {
   "🆘": "1145722058509140099",
   "✅": "1151721467646591028",
   "😵": "1184592060796371006",
+  "🤐": "1213131061333196821",
 };
 
 const sentMessages_more = new Map(); // Map to store sent messages for reaction roles
@@ -470,7 +472,8 @@ client.on("messageCreate", async (message) => {
     const reactionRolesMessage = "\nSelect your roles:\n\n" +
       "Helper - 🆘\n" +
       "Daily Poll - ✅\n" +
-      "Pingable - 😵";
+      "Pingable - 😵\n" +
+      "Daily Blog - 🤐";
 
     const sentMessage_more = await message.channel.send({ content: reactionRolesMessage });
 
@@ -577,6 +580,30 @@ client.on("messageReactionRemove", async (reaction, user) => {
 });
 
 ///-----------------------------------------------------------------------------------------------------------------
+// Daily Blog Ping
+///-----------------------------------------------------------------------------------------------------------------
+
+client.once('ready', () => {
+  console.log(`Logged in as ${client.user.tag}`);
+  
+  // Define the channel and role IDs
+  const channelId = '1090438974616637511';
+  const roleId = '1213131061333196821';
+  
+  // Set up the cron job to run at 5:00 PM EST every day
+  new CronJob('00 00 17 * * *', () => {
+      const channel = client.channels.cache.get(channelId);
+      const role = channel.guild.roles.cache.get(roleId);
+
+      if (channel && role) {
+          channel.send(`<@&${role.id}> Reminder: Do Your Blog!`);
+      } else {
+          console.error('Channel or role not found.');
+      }
+  }, null, true, 'America/New_York');
+});
+
+///-----------------------------------------------------------------------------------------------------------------
 // Welcome Message
 ///-----------------------------------------------------------------------------------------------------------------
 
@@ -594,7 +621,7 @@ client.on("guildMemberAdd", (member) => {
 // Word Filter
 ///-----------------------------------------------------------------------------------------------------------------
 
-// Only commented because it's annoying for my server members, works 100%...
+// Only commented because it's annoying for the server members
 
 /*
 client.on("messageCreate", async (message) => {
