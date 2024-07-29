@@ -16,8 +16,8 @@ const client = new Client({
 
 const ownerId = '789606702076788737';
 const token = process.env.TOKEN;
+const admin_key = process.env.ADMIN_KEY;
 const forbiddenWords = require('../forbiddenWords.json');
-const githubLink = 'https://github.com/Max8k/HTHS-Bot-2027/';
 
 client.once("ready", () => {
   console.log(`${client.user.tag} online...`);
@@ -69,6 +69,36 @@ const commands = [
         name: 'word',
         type: 3,
         description: 'Word to filter...',
+        required: true,
+      },
+    ]
+  },
+  {
+    name: 'set-status',
+    description: 'Changes Bot Status',
+    options: [
+      {
+        name: 'status',
+        type: 3, // STRING
+        description: 'Enter Status Here',
+        required: true,
+      },
+      {
+        name: 'admin-key',
+        type: 3, // STRING
+        description: 'Only admins can use this command.',
+        required: true,
+      },
+    ]
+  },
+  {
+    name: 'clear-status',
+    description: 'Clears Bot Status',
+    options: [
+      {
+        name: 'admin-key',
+        type: 3, // STRING
+        description: 'Only admins can use this command.',
         required: true,
       },
     ]
@@ -166,6 +196,48 @@ client.on('interactionCreate', async (interaction) => {
     } else {
       await interaction.reply({
         content: `The word "${word}" doesn't contain a profanity.`,
+        ephemeral: true,
+      });
+    }
+  } if (commandName === 'set-status') {
+    const statusmessage = interaction.options.getString('status');
+    const admin_key_input = interaction.options.getString('admin-key');
+    // 128 Character Limit
+    if (admin_key_input === admin_key) {
+      if (statusmessage && statusmessage.length <= 128) {
+        client.user.setPresence({
+          //activities: [{ name: statusmessage, type: 'WATCHING', }],
+          activities: [{ name: statusmessage, }],
+        });
+        await interaction.reply({
+          content: `Status successfully set to "${statusmessage}".`,
+          ephemeral: true,
+        });
+      } else {
+        await interaction.reply({
+          content: `"${statusmessage}" exceeds the 128 character limit.`,
+          ephemeral: true,
+        });
+      }
+    } else {
+      await interaction.reply({
+        content: "Incorrect Admin Key.",
+        ephemeral: true,
+      });
+    }
+  } if (commandName === 'clear-status') {
+    const admin_key_input = interaction.options.getString('admin-key');
+    if (admin_key_input === admin_key) {
+      client.user.setPresence({
+        
+      });
+      await interaction.reply({
+        content: `Status successfully cleared.`,
+        ephemeral: true,
+      });
+    } else {
+      await interaction.reply({
+        content: "Incorrect Admin Key.",
         ephemeral: true,
       });
     }
@@ -461,7 +533,8 @@ const roleEmojis_more = {
   "🆘": "1145722058509140099",
   "✅": "1151721467646591028",
   "😵": "1184592060796371006",
-  "🤐": "1213131061333196821",
+  "🦫": "1191872729331286036",
+  //"🤐": "1213131061333196821",
 };
 
 const sentMessages_more = new Map(); // Map to store sent messages for reaction roles
@@ -473,7 +546,8 @@ client.on("messageCreate", async (message) => {
       "Helper - 🆘\n" +
       "Daily Poll - ✅\n" +
       "Pingable - 😵\n" +
-      "Daily Blog - 🤐";
+      "Beaver - 🦫";
+      //"Daily Blog - 🤐";
 
     const sentMessage_more = await message.channel.send({ content: reactionRolesMessage });
 
@@ -582,11 +656,9 @@ client.on("messageReactionRemove", async (reaction, user) => {
 ///-----------------------------------------------------------------------------------------------------------------
 // Daily Blog Ping
 ///-----------------------------------------------------------------------------------------------------------------
-
+/*
 client.once('ready', () => {
-  console.log(`Logged in as ${client.user.tag}`);
   
-  // Define the channel and role IDs
   const channelId = '1090438974616637511';
   const roleId = '1213131061333196821';
   
@@ -602,13 +674,13 @@ client.once('ready', () => {
       }
   }, null, true, 'America/New_York');
 });
-
+*/
 ///-----------------------------------------------------------------------------------------------------------------
 // Welcome Message
 ///-----------------------------------------------------------------------------------------------------------------
 
 client.on("guildMemberAdd", (member) => {
-  const welcomeChannelID = "1090439603955187782"; // Welcome Messages Sent to this channel
+  const welcomeChannelID = "1090439603955187782";
 
   const welcomeChannel = member.guild.channels.cache.get(welcomeChannelID);
 
@@ -659,7 +731,7 @@ client.on('messageCreate', async (message) => {
       console.log(error)
     }
     console.log('Recieved Disconnect Command...')
-    client.destroy(); // Disconnect the bot
+    client.destroy(); // Disconnect bot
   }
 });
 
@@ -669,7 +741,7 @@ client.on('messageCreate', async (message) => {
 
 client.once('ready', () => {
   client.user.setPresence({
-    activities: [{ name: 'UPDATES', type: 'WATCHING', url: githubLink }],
+    //activities: [{ name: 'Locking in rq', type: 'WATCHING', }],
     status: 'dnd', // "online", "idle", "dnd", or "invisible"
   });
 });
@@ -682,11 +754,21 @@ client.on('messageCreate', async (message) => {
       console.log(error)
     }
     client.user.setPresence({
-      activities: [{ name: 'UPDATES', type: 'WATCHING', url: githubLink }],
+      //activities: [{ name: 'Locking in rq', type: 'WATCHING', }],
       status: 'dnd', // "online", "idle", "dnd", or "invisible"
     });
     console.log('Recieved Update Command...')
   }
+});
+
+client.once('ready', () => {  
+  // Set up the cron job to run at 8:00 AM EST every day
+  new CronJob('00 00 08 * * *', () => { // SECONDS / MINUTES / HOURS (24 HOUR TIME)
+    client.user.setPresence({
+      status: 'dnd', // "online", "idle", "dnd", or "invisible"
+      //activities: [{ name: 'Locking in rq', type: 'WATCHING', }],
+    });
+  }, null, true, 'America/New_York');
 });
 
 ///-----------------------------------------------------------------------------------------------------------------
